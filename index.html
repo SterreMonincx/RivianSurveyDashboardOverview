@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rivian GenAI Implementation Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .tab-active { border-bottom: 2px solid #3b82f6; color: #2563eb; }
+        .tab-inactive { border-bottom: 2px solid transparent; color: #6b7280; }
+        .tab-inactive:hover { color: #374151; }
+        .company-card { transition: box-shadow 0.3s ease; }
+        .company-card:hover { box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1); }
+        .maturity-early { background-color: #fef2f2; color: #991b1b; }
+        .maturity-exploring { background-color: #fffbeb; color: #92400e; }
+        .maturity-piloting { background-color: #f0fdf4; color: #166534; }
+        .maturity-scaling { background-color: #ecfeff; color: #155e75; }
+        .maturity-advanced { background-color: #ede9fe; color: #6b21a8; }
+        .impact-high { background-color: #ecfeff; color: #155e75; }
+        .impact-moderate { background-color: #fffbeb; color: #92400e; }
+        .impact-extreme { background-color: #fef2f2; color: #991b1b; }
+        .chart-container { position: relative; height: 300px; margin: 20px 0; }
+        .tab-content { display: block; }
+        .tab-content.hidden { display: none; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+        .grid { display: grid; }
+        .grid-cols-1 { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+        .grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        .gap-4 { gap: 1rem; }
+        .gap-6 { gap: 1.5rem; }
+        .gap-8 { gap: 2rem; }
+        .space-y-2 > * + * { margin-top: 0.5rem; }
+        .space-y-3 > * + * { margin-top: 0.75rem; }
+        .space-y-4 > * + * { margin-top: 1rem; }
+        .space-y-6 > * + * { margin-top: 1.5rem; }
+        .space-y-8 > * + * { margin-top: 2rem; }
+        @media (min-width: 768px) {
+            .md\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .md\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1024px) {
+            .lg\\:grid-cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .lg\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+            .lg\\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+        }
+        @media (min-width: 1280px) {
+            .xl\\:grid-cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 py-6">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-3xl font-bold text-gray-900">Generative AI Implementation Dashboard</h1>
+                    <p class="text-gray-600 mt-1">Rivian Portfolio Companies Survey Results • 21 Companies</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="text-right">
+                        <div class="text-sm text-gray-500">Survey Completion</div>
+                        <div class="text-2xl font-bold text-green-600">100%</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="bg-white border-b">
+        <div class="max-w-7xl mx-auto px-4">
+            <nav class="flex space-x-8">
+                <button onclick="showTab('overview')" id="tab-overview" class="py-4 px-2 border-b-2 font-medium text-sm tab-active">Overview</button>
+                <button onclick="showTab('maturity')" id="tab-maturity" class="py-4 px-2 border-b-2 font-medium text-sm tab-inactive">Maturity</button>
+                <button onclick="showTab('impact')" id="tab-impact" class="py-4 px-2 border-b-2 font-medium text-sm tab-inactive">Impact</button>
+                <button onclick="showTab('timeline')" id="tab-timeline" class="py-4 px-2 border-b-2 font-medium text-sm tab-inactive">Timeline</button>
+                <button onclick="showTab('companies')" id="tab-companies" class="py-4 px-2 border-b-2 font-medium text-sm tab-inactive">Companies</button>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Overview Tab -->
+        <div id="content-overview" class="tab-content">
+            <div class="space-y-8">
+                <!-- Key Insights -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 bg-green-500 rounded mr-3"></div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">Implementation Maturity</h3>
+                                <p class="text-2xl font-bold text-gray-900">33% Piloting</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Equal split between exploring and piloting</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 bg-blue-500 rounded mr-3"></div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">Expected Impact</h3>
+                                <p class="text-2xl font-bold text-gray-900">57% High Impact</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Strong confidence in GenAI potential</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 bg-orange-500 rounded mr-3"></div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">Timeline to Value</h3>
+                                <p class="text-2xl font-bold text-gray-900">43% Within 2 Years</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">Aggressive timeline expectations</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 bg-purple-500 rounded mr-3"></div>
+                            <div>
+                                <h3 class="text-sm font-medium text-gray-500">Workforce Adoption</h3>
+                                <p class="text-2xl font-bold text-gray-900">48% > 50%</p>
+                            </div>
+                        </div>
+                        <p class="text-sm text-gray-600 mt-2">High workforce engagement expected</p>
+                    </div>
+                </div>
+
+                <!-- Charts Row 1 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h3 class="text-lg font-semibold mb-4">Implementation Maturity Distribution</h3>
+                        <div class="chart-container">
+                            <canvas id="maturityChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h3 class="text-lg font-semibold mb-4">Expected Impact Assessment</h3>
+                        <div class="chart-container">
+                            <canvas id="impactChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Row 2 -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h3 class="text-lg font-semibold mb-4">Timeline to Substantial Impact</h3>
+                        <div class="chart-container">
+                            <canvas id="timelineChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h3 class="text-lg font-semibold mb-4">Expected Efficiency Gains (3 Years)</h3>
+                        <div class="chart-container">
+                            <canvas id="efficiencyChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Companies Tab -->
+        <div id="content-companies" class="tab-content hidden">
+            <div class="space-y-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm border">
+                    <h3 class="text-xl font-semibold mb-6">Individual Company Insights</h3>
+                    <div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6" id="company-cards">
+                        <!-- Company cards will be populated by JavaScript -->
+                    </div>
+                </div>
+
+                <!-- Summary Insights -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="text-lg font-semibold mb-4">High Performers</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>PERBILITY:</strong> Advanced • 21–30%</div>
+                            <div><strong>STAEDEAN:</strong> Scaling • 31–50%</div>
+                            <div><strong>]init[:</strong> Scaling • 31–50%</div>
+                            <div><strong>Valcon:</strong> Scaling • 11–20%</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="text-lg font-semibold mb-4">Fast Movers</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>Dataciders:</strong> High impact • 6–10%</div>
+                            <div><strong>STAEDEAN:</strong> High impact • 31–50%</div>
+                            <div><strong>Valcon:</strong> High impact • 11–20%</div>
+                            <div><strong>]init[:</strong> Extremely disruptive • 31–50%</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="text-lg font-semibold mb-4">High Workforce Adoption</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>Dataciders:</strong> Piloting • 10/10</div>
+                            <div><strong>Acture:</strong> Piloting • 10/10</div>
+                            <div><strong>STAEDEAN:</strong> Scaling • 9/10</div>
+                            <div><strong>Valcon:</strong> Scaling • 8/10</div>
+                            <div><strong>]init[:</strong> Scaling • 9/10</div>
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-sm border">
+                        <h4 class="text-lg font-semibold mb-4">Development Opportunities</h4>
+                        <div class="space-y-2 text-sm">
+                            <div><strong>Enstall:</strong> Early Stage • Within 3 years</div>
+                            <div><strong>ZND:</strong> Early Stage • Within 3 years</div>
+                            <div><strong>Best4Tires:</strong> Exploring • Within 5 years</div>
+                            <div><strong>xdconnects:</strong> Exploring • Within 3 years</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Other tabs content would go here -->
+        <div id="content-maturity" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow-sm border mb-8">
+                <h3 class="text-lg font-semibold mb-4">Maturity Classification Methodology</h3>
+                <div class="bg-blue-50 p-4 rounded-lg mb-4">
+                    <div class="flex items-start">
+                        <div class="w-5 h-5 bg-blue-500 rounded-full mt-0.5 mr-2 flex-shrink-0"></div>
+                        <div class="text-sm text-blue-800">
+                            <strong>Note:</strong> Maturity levels are derived from analysis of responses to: <em>"In two sentences, how would you describe your current position in implementing and transforming towards a generative AI-enabled organization?"</em>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="overflow-hidden rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Maturity Level</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Classification Criteria</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Example Keywords/Phrases</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-red-500 rounded-full mr-3"></div>
+                                        <div class="text-sm font-medium text-gray-900">Early Stage</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">Minimal or no organized implementation</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">"Hardly done anything", "individual basis", "advanced Google search"</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-yellow-500 rounded-full mr-3"></div>
+                                        <div class="text-sm font-medium text-gray-900">Exploring</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">Analyzing opportunities, defining strategy, planning phase</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">"Fundamental opportunity", "analyzing", "scan", "initial", "roadmap", "open-minded"</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-green-500 rounded-full mr-3"></div>
+                                        <div class="text-sm font-medium text-gray-900">Piloting</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">Active implementation, testing, executing specific projects</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">"Work in progress", "implementing", "executing", "process in place", "made a start"</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-blue-500 rounded-full mr-3"></div>
+                                        <div class="text-sm font-medium text-gray-900">Scaling</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">Strategic approach, systematic rollout, client-facing implementation</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">"Strategic approach", "center of excellence", "leveraging", "actively implementing"</td>
+                            </tr>
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <div class="flex items-center">
+                                        <div class="w-3 h-3 bg-purple-500 rounded-full mr-3"></div>
+                                        <div class="text-sm font-medium text-gray-900">Advanced</div>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-4 text-sm text-gray-600">Organizational transformation, embedded AI capabilities, cultural shift</td>
+                                <td class="px-6 py-4 text-sm text-gray-500">"Actively evolving", "embedding AI capabilities", "internal AI platform", "cultural shift"</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="mt-4 text-xs text-gray-500">
+                    <strong>Methodology:</strong> Classifications were derived by analyzing keywords and phrases in survey responses, content depth, and stated organizational approach to GenAI implementation.
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 class="text-xl font-semibold mb-6">Maturity Analysis</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div>
+                        <div class="chart-container">
+                            <canvas id="maturityDetailChart"></canvas>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="text-lg font-medium mb-4">Distribution by Stage</h4>
+                        <div class="space-y-4">
+                            <div class="flex items-center p-4 bg-red-50 rounded-lg">
+                                <div class="w-4 h-4 bg-red-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Early Stage</div>
+                                    <div class="text-sm text-gray-600">2 companies</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">10%</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center p-4 bg-yellow-50 rounded-lg">
+                                <div class="w-4 h-4 bg-yellow-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Exploring</div>
+                                    <div class="text-sm text-gray-600">7 companies</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">33%</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center p-4 bg-green-50 rounded-lg">
+                                <div class="w-4 h-4 bg-green-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Piloting</div>
+                                    <div class="text-sm text-gray-600">7 companies</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">33%</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center p-4 bg-blue-50 rounded-lg">
+                                <div class="w-4 h-4 bg-blue-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Scaling</div>
+                                    <div class="text-sm text-gray-600">4 companies</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">19%</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center p-4 bg-purple-50 rounded-lg">
+                                <div class="w-4 h-4 bg-purple-500 rounded-full mr-3"></div>
+                                <div class="flex-1">
+                                    <div class="font-medium">Advanced</div>
+                                    <div class="text-sm text-gray-600">1 company</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="text-lg font-bold">5%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-impact" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 class="text-xl font-semibold mb-6">Impact Analysis</h3>
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <div class="chart-container">
+                        <canvas id="impactDetailChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="workforceChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="content-timeline" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow-sm border">
+                <h3 class="text-xl font-semibold mb-6">Timeline Analysis</h3>
+                <div class="chart-container">
+                    <canvas id="timelineDetailChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="bg-white border-t mt-8">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between text-sm text-gray-600">
+                <div>Dashboard generated from survey of 21 Rivian portfolio companies</div>
+                <div>Data reflects GenAI implementation status as of June 2025</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Survey data
+        const companyData = [
+            { name: "Gero Presser", company: "Dataciders GmbH", maturity: "Piloting", impact: "High impact", timeline: "Within 1 year", efficiency: "6–10%", workforce: "More than 75%", disruption: 10, description: "AI consultancy supporting customers and using AI internally, particularly in software development with MS CoPilot." },
+            { name: "Armin Heß", company: "Best4Tires Holding GmbH", maturity: "Exploring", impact: "High impact", timeline: "Within 5 years", efficiency: "6–10%", workforce: "10–25%", disruption: 7, description: "Sees GenAI as fundamental opportunity, defining applications and gaining initial experience." },
+            { name: "Stijn Vos", company: "Enstall", maturity: "Early Stage", impact: "Moderate impact", timeline: "Within 3 years", efficiency: "6–10%", workforce: "10–25%", disruption: 5, description: "Minimal implementation so far, only using translator for product training." },
+            { name: "Rob Lemmens", company: "WILVO Group", maturity: "Piloting", impact: "High impact", timeline: "Within 2 years", efficiency: "11–20%", workforce: "10–25%", disruption: 10, description: "Using AI across departments, planning full automation of processes like cost calculations and CNC programming." },
+            { name: "Maudie Derks", company: "Acture", maturity: "Piloting", impact: "High impact", timeline: "Within 2 years", efficiency: "31–50%", workforce: "More than 75%", disruption: 10, description: "Appointed CIO to focus on tech and AI, work in progress with plan in place and executing." },
+            { name: "Luciano Cunha", company: "STAEDEAN", maturity: "Scaling", impact: "High impact", timeline: "Within 1 year", efficiency: "31–50%", workforce: "More than 75%", disruption: 9, description: "AI-active company with dedicated AI Center of Excellence, multiple product initiatives, launching solutions H2 2025." },
+            { name: "Albert van der veen", company: "xdconnects", maturity: "Exploring", impact: "Moderate impact", timeline: "Within 3 years", efficiency: "11–20%", workforce: "26–50%", disruption: 5, description: "Analyzed processes for AI efficiency, now implementing with AI consultancy support starting with customer service." },
+            { name: "Francois Goffinet", company: "CED", maturity: "Piloting", impact: "Extremely disruptive impact", timeline: "Within 2 years", efficiency: "11–20%", workforce: "26–50%", disruption: 9, description: "Strong process in place from use case detection to deployment, dividing costs by 3-4x in implemented areas." },
+            { name: "Rienk de Vries", company: "Intero Integrity", maturity: "Exploring", impact: "Moderate impact", timeline: "Within 3 years", efficiency: "6–10%", workforce: "26–50%", disruption: 4, description: "Sees potential opportunities but hasn't started, develops software including automated data inspection algorithms." },
+            { name: "Ton Vernaus", company: "Speyzer", maturity: "Piloting", impact: "Moderate impact", timeline: "Within 3 years", efficiency: "11–20%", workforce: "10–25%", disruption: 6, description: "Facilitating cross-functional sessions, providing secure environments to experiment with Microsoft Copilot." },
+            { name: "Mark van den Heuvel", company: "2Connect", maturity: "Piloting", impact: "Moderate impact", timeline: "Within 2 years", efficiency: "6–10%", workforce: "10–25%", disruption: 6, description: "Started first AI project to automate administrative engineering process for work instruction creation." },
+            { name: "Geert van den Goor", company: "Valcon", maturity: "Scaling", impact: "High impact", timeline: "Within 1 year", efficiency: "11–20%", workforce: "More than 75%", disruption: 8, description: "Actively implementing AI internally and at clients with strong workforce adoption expected." },
+            { name: "Eckart Pech", company: "HBSN/]init[ AG", maturity: "Piloting", impact: "High impact", timeline: "Within 2 years", efficiency: "11–20%", workforce: "51–75%", disruption: 9, description: "Leveraging AI for client engagements and internal operations efficiency." },
+            { name: "Marcel van Kesteren", company: "ZND", maturity: "Early Stage", impact: "Moderate impact", timeline: "Within 3 years", efficiency: "6–10%", workforce: "10–25%", disruption: 3, description: "Individual basis implementation, employees using AI as advanced Google search for simple work processes." },
+            { name: "Andy Meck", company: "PERBILITY", maturity: "Advanced", impact: "High impact", timeline: "Within 2 years", efficiency: "21–30%", workforce: "51–75%", disruption: 7, description: "Actively evolving into AI-enabled organization with internal AI platform and cultural shift for company-wide adoption." },
+            { name: "Harald Felling", company: "]init[", maturity: "Scaling", impact: "Extremely disruptive impact", timeline: "Within 1 year", efficiency: "31–50%", workforce: "More than 75%", disruption: 9, description: "Strategic approach to develop AI portfolio, changing from bottom-up to corporate strategy with KPI-based targets." },
+            { name: "Maximilian Acht", company: "Green Mobility Holding GmbH", maturity: "Exploring", impact: "High impact", timeline: "Within 2 years", efficiency: "21–30%", workforce: "51–75%", disruption: 8, description: "Holding company seeing different maturity levels across subsidiaries, reducing manual processes and improving sales pipeline." },
+            { name: "Michiel Nijhout", company: "Kinkelder", maturity: "Exploring", impact: "Moderate impact", timeline: "Within 5 years", efficiency: "6–10%", workforce: "10–25%", disruption: 7, description: "Open-minded and taking initiative to gain knowledge and improve skills using existing apps." },
+            { name: "Alessandro Coppo", company: "Storio", maturity: "Scaling", impact: "High impact", timeline: "Within 3 years", efficiency: "6–10%", workforce: "26–50%", disruption: 7, description: "Starting position leveraging proven tools and experimenting in transforming user experience." },
+            { name: "Morten", company: "Tonerpartner", maturity: "Exploring", impact: "High impact", timeline: "Within 2 years", efficiency: "21–30%", workforce: "51–75%", disruption: 8, description: "Clear roadmap for automation and AI processes, implemented in 5-year strategy with milestones and KPIs." },
+            { name: "Jelle Gacoms", company: "Corilus", maturity: "Exploring", impact: "High impact", timeline: "Within 2 years", efficiency: "11–20%", workforce: "51–75%", disruption: 7, description: "Conducted AI scan in 2024, executing three priorities in 2025: customer service chatbot, voice bot, and AI features in software products." }
+        ];
+
+        // Tab functionality
+        function showTab(tabName) {
+            // Hide all content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            
+            // Remove active class from all tabs
+            document.querySelectorAll('[id^="tab-"]').forEach(tab => {
+                tab.className = tab.className.replace('tab-active', 'tab-inactive');
+            });
+            
+            // Show selected content
+            document.getElementById(`content-${tabName}`).classList.remove('hidden');
+            
+            // Add active class to selected tab
+            document.getElementById(`tab-${tabName}`).className = document.getElementById(`tab-${tabName}`).className.replace('tab-inactive', 'tab-active');
+        }
+
+        // Populate company cards
+        function populateCompanyCards() {
+            const container = document.getElementById('company-cards');
+            companyData.forEach(company => {
+                const card = document.createElement('div');
+                card.className = 'border border-gray-200 rounded-lg p-4 company-card';
+                
+                const maturityClass = company.maturity === 'Advanced' ? 'maturity-advanced' :
+                                    company.maturity === 'Scaling' ? 'maturity-scaling' :
+                                    company.maturity === 'Piloting' ? 'maturity-piloting' :
+                                    company.maturity === 'Exploring' ? 'maturity-exploring' :
+                                    'maturity-early';
+                
+                const impactClass = company.impact === 'Extremely disruptive impact' ? 'impact-extreme' :
+                                  company.impact === 'High impact' ? 'impact-high' :
+                                  'impact-moderate';
+                
+                card.innerHTML = `
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <h4 class="font-semibold text-lg text-gray-900">${company.company}</h4>
+                            <p class="text-sm text-gray-600">${company.name}</p>
+                        </div>
+                        <div class="px-2 py-1 rounded text-xs font-medium ${maturityClass}">
+                            ${company.maturity}
+                        </div>
+                    </div>
+                    
+                    <p class="text-sm text-gray-700 mb-4">${company.description.length > 120 ? company.description.substring(0, 120) + '...' : company.description}</p>
+                    
+                    <div class="space-y-2">
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-gray-500">Impact Perspective</span>
+                            <span class="text-xs px-2 py-1 rounded ${impactClass}">
+                                ${company.impact}
+                            </span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-gray-500">Timeline</span>
+                            <span class="text-xs text-gray-700">${company.timeline}</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-gray-500">Expected Efficiency</span>
+                            <span class="text-xs text-gray-700">${company.efficiency}</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-gray-500">Workforce Usage</span>
+                            <span class="text-xs text-gray-700">${company.workforce}</span>
+                        </div>
+                        
+                        <div class="flex justify-between items-center">
+                            <span class="text-xs font-medium text-gray-500">Disruption Score</span>
+                            <span class="text-xs text-gray-700">${company.disruption}/10</span>
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // Initialize charts
+        function initCharts() {
+            // Maturity Chart
+            const maturityCtx = document.getElementById('maturityChart').getContext('2d');
+            new Chart(maturityCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Early Stage', 'Exploring', 'Piloting', 'Scaling', 'Advanced'],
+                    datasets: [{
+                        data: [2, 7, 7, 4, 1],
+                        backgroundColor: ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4ecdc4', '#45b7d1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Impact Chart
+            const impactCtx = document.getElementById('impactChart').getContext('2d');
+            new Chart(impactCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['High Impact', 'Moderate Impact', 'Extremely Disruptive'],
+                    datasets: [{
+                        data: [12, 7, 2],
+                        backgroundColor: ['#4ecdc4', '#ffd93d', '#ff6b6b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+
+            // Timeline Chart
+            const timelineCtx = document.getElementById('timelineChart').getContext('2d');
+            new Chart(timelineCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Within 1 Year', 'Within 2 Years', 'Within 3 Years', 'Within 5 Years'],
+                    datasets: [{
+                        data: [4, 9, 6, 2],
+                        backgroundColor: ['#ff6b6b', '#4ecdc4', '#6bcf7f', '#ffd93d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Efficiency Chart
+            const efficiencyCtx = document.getElementById('efficiencyChart').getContext('2d');
+            new Chart(efficiencyCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['6-10%', '11-20%', '21-30%', '31-50%'],
+                    datasets: [{
+                        data: [8, 7, 3, 3],
+                        backgroundColor: '#45b7d1'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            // Additional charts for other tabs
+            const maturityDetailCtx = document.getElementById('maturityDetailChart').getContext('2d');
+            new Chart(maturityDetailCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Early Stage', 'Exploring', 'Piloting', 'Scaling', 'Advanced'],
+                    datasets: [{
+                        data: [2, 7, 7, 4, 1],
+                        backgroundColor: ['#ff6b6b', '#ffd93d', '#6bcf7f', '#4ecdc4', '#45b7d1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const impactDetailCtx = document.getElementById('impactDetailChart').getContext('2d');
+            new Chart(impactDetailCtx, {
+                type: 'pie',
+                data: {
+                    labels: ['High Impact', 'Moderate Impact', 'Extremely Disruptive'],
+                    datasets: [{
+                        data: [12, 7, 2],
+                        backgroundColor: ['#4ecdc4', '#ffd93d', '#ff6b6b']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+
+            const workforceCtx = document.getElementById('workforceChart').getContext('2d');
+            new Chart(workforceCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['10-25%', '26-50%', '51-75%', '75%+'],
+                    datasets: [{
+                        data: [7, 4, 5, 5],
+                        backgroundColor: ['#ffd93d', '#6bcf7f', '#4ecdc4', '#45b7d1']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+
+            const timelineDetailCtx = document.getElementById('timelineDetailChart').getContext('2d');
+            new Chart(timelineDetailCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['Within 1 Year', 'Within 2 Years', 'Within 3 Years', 'Within 5 Years'],
+                    datasets: [{
+                        data: [4, 9, 6, 2],
+                        backgroundColor: ['#ff6b6b', '#4ecdc4', '#6bcf7f', '#ffd93d']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        // Initialize everything when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            populateCompanyCards();
+            initCharts();
+        });
+    </script>
+</body>
+</html>
